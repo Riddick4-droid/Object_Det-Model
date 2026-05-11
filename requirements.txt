@@ -1,0 +1,13 @@
+#pytorch cpu
+torch
+torchvision
+torch-summary
+torchmetrics
+thop
+cython
+PyYAML
+
+kagglehub
+numpy
+pandas
+matplotlib
