@@ -5,6 +5,7 @@ import math
 from models.backbone import CustomBackbone
 from models.head import SSDHead
 from torch.functional import F
+from configs.config import INPUT_SIZE, NUM_CLASSES
 
 class ObjDet_V1(nn.Module):
     """
@@ -158,3 +159,6 @@ class ObjDet_V1(nn.Module):
             "cls_logits": cls_logits # Always return raw predictions
         }
         return output
+    
+##initialize
+model = ObjDet_V1(num_classes=NUM_CLASSES, input_size=INPUT_SIZE)

@@ -14,7 +14,8 @@ from torchvision.ops import nms
 import random
 from torchvision.transforms import ToTensor
 from models.model import model
-from configs.config import DEVICE
+from configs.config import DEVICE, NMS_CONFIDENCE_THRESHOLD
+from utils.nms import non_max_suppression
 
 
 
@@ -216,7 +217,7 @@ def display_model_predictions(
             file_name = ann_data['file_name']
 
             #1. Preprocess the image for the model
-            image_tensor = transform(image_pil).to(device)
+            image_tensor = transform(image_pil).to(DEVICE)
             # Add batch dimension
             image_batch = image_tensor.unsqueeze(0)
 
@@ -229,14 +230,14 @@ def display_model_predictions(
             pred_scores = predictions['scores'][0]
 
             # Initial filtering by confidence threshold
-            keep_preds_conf = pred_scores > confidence_threshold
+            keep_preds_conf = pred_scores > NMS_CONFIDENCE_THRESHOLD
             filtered_pred_boxes = pred_boxes[keep_preds_conf]
             filtered_pred_labels_raw = pred_labels[keep_preds_conf]
             filtered_pred_scores = pred_scores[keep_preds_conf]
 
             # If no boxes passed the confidence threshold AND threshold is 0.0 (for debugging untrained models),
             # show a few top-scoring predictions anyway to ensure some visualization.
-            if filtered_pred_boxes.numel() == 0 and confidence_threshold == 0.0:
+            if filtered_pred_boxes.numel() == 0 and NMS_CONFIDENCE_THRESHOLD == 0.0:
                 logger.info(f"No predictions passed the 0.0 confidence threshold for {file_name}. Displaying top 100 highest scoring predictions for debugging visualization.")
                 top_k_to_show = min(100, len(pred_scores)) # Limit to 100 boxes, or fewer if not many predictions
                 if top_k_to_show > 0:
@@ -295,7 +296,7 @@ def display_model_predictions(
                         ])
 
                     # Move ground truth boxes to the same device as model predictions
-                    gt_boxes_tensor = torch.tensor(scaled_gt_boxes, dtype=torch.float32).to(device)
+                    gt_boxes_tensor = torch.tensor(scaled_gt_boxes, dtype=torch.float32).to(DEVICE)
                     all_boxes_to_draw.append(gt_boxes_tensor)
                     all_labels_to_display.extend([f"GT: {lbl}" for lbl in gt_labels_raw])
                     all_colors.extend(["red"] * len(gt_boxes_raw))
@@ -310,7 +311,7 @@ def display_model_predictions(
                 for label, score, box in zip(filtered_pred_labels_raw, filtered_pred_scores, filtered_pred_boxes):
                     # Filter out background predictions if confidence_threshold is not 0.0
                     # Background class has label 0.
-                    if label.item() == 0 and confidence_threshold != 0.0:
+                    if label.item() == 0 and NMS_CONFIDENCE_THRESHOLD != 0.0:
                         continue
 
                     pred_boxes_for_display.append(box)
@@ -350,7 +351,7 @@ def display_model_predictions(
         title_text = ""
         if show_ground_truth:
             title_text += "Ground Truth (Red) & "
-        title_text += f"Model Predictions (Green, Confidence > {confidence_threshold})"
+        title_text += f"Model Predictions (Green, Confidence > {NMS_CONFIDENCE_THRESHOLD})"
         if apply_nms:
             title_text += f" with NMS (IoU > {nms_iou_threshold})"
         plt.title(title_text)
